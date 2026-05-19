@@ -3,7 +3,14 @@ package edu.touro.mcon364.finalreview.orderflowhandoff.exercises;
 import edu.touro.mcon364.finalreview.model.LogLevel;
 import edu.touro.mcon364.finalreview.model.LogMessage;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * LogProcessor.
@@ -38,16 +45,16 @@ import java.util.Map;
  * - The class must behave correctly when multiple threads interact with it.
  *
  * Questions to think about before coding:
- * - Where should submitted messages wait before a worker processes them?
+ * - Where should submitted messages wait before a worker processes them? - Linked Blocking Queue
  * - What behavior do we need from that structure: newest first, oldest first,
- *   priority order, or something else?
- * - Which state is shared by multiple threads?
+ *   priority order, or something else? oldest first FIFO
+ * - Which state is shared by multiple threads? the totals - summary counts
  * - Which operations must be protected so the statistics stay correct?
  * - How will worker threads know when to continue waiting for work and when to
- *   finish?
- * - What should happen if stop() is called while messages are still waiting?
+ *   finish? blocking queue
+ * - What should happen if stop() is called while messages are still waiting? await shutdown
  * - What should the public getter methods return so outside code cannot damage
- *   the processor's internal state?
+ *   the processor's internal state? return a copy
  */
 public class LogProcessor {
 
@@ -61,16 +68,24 @@ public class LogProcessor {
      * - total processed count
      * - count by log level
      */
+    private final BlockingQueue<LogMessage> waitingQueue = new LinkedBlockingQueue<>();
+    private final List<Thread> workers = new ArrayList<>();
+    private final ConcurrentHashMap<LogLevel, AtomicInteger> countByLevel = new ConcurrentHashMap<>();
+    private final AtomicInteger totalProcessed = new AtomicInteger();
+    private volatile boolean running = false;
 
     /**
      * Accept one message for processing.
      */
     public void submit(LogMessage message) {
         // TODO: implement
+        if (running) {
+            waitingQueue.offer(message);
+        }
     }
 
     /**
-     * Start the requested number of background workers.
+     * Start the requested number of background workers. - create new pool with executor service
      */
     public void start(int workerCount) {
         // TODO: implement

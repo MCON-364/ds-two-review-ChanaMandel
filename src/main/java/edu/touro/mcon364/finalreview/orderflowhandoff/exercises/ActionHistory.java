@@ -1,6 +1,10 @@
 package edu.touro.mcon364.finalreview.orderflowhandoff.exercises;
 
-import edu.touro.mcon364.finalreview.model.Action;import java.util.Optional;
+import edu.touro.mcon364.finalreview.model.Action;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Optional;
 
 /**
  * In-class Exercise 1 — Action History
@@ -20,36 +24,49 @@ import edu.touro.mcon364.finalreview.model.Action;import java.util.Optional;
  * You may add private fields and private helper methods.
  * Do not change the public method signatures.
  * Before coding, decide:
- * - What information does this class need to remember?
- * - What is the appropriate data structure
+ * - What information does this class need to remember? - the tasks and there order
+ * - What is the appropriate data structure - ArrayDeque
  * - Which operation should be fastest?
- * - When an action is undone, where should it go so it can be redone later?
- * - What should happen to redo history after a brand-new action is performed?
+ * - When an action is undone, where should it go so it can be redone later? - on a redo stack
+ * - What should happen to redo history after a brand-new action is performed? - it should be cleared
 
  */
 public class ActionHistory {
 
+    private final Deque<Action> undoStack = new ArrayDeque<>();
+    private final Deque<Action> redoStack = new ArrayDeque<>();
+
     public void perform(Action action) {
         // TODO: implement based on the requirements above
+        undoStack.push(action);
+        redoStack.clear();
     }
 
     public Optional<Action> undo() {
         // TODO: implement based on the requirements above
-        return Optional.empty();
+        if(!undoStack.isEmpty()) {
+            Action undoAction = undoStack.pop();
+            redoStack.push(undoAction);
+            return Optional.of(undoAction);
+        } else return Optional.empty();
     }
 
     public Optional<Action> redo() {
         // TODO: implement based on the requirements above
-        return Optional.empty();
+        if(!redoStack.isEmpty()) {
+            Action redoAction = redoStack.pop();
+            undoStack.push(redoAction);
+            return Optional.of(redoAction);
+        }  else return Optional.empty();
     }
 
     public int getUndoCount() {
         // TODO: implement based on the requirements above
-        return 0;
+        return undoStack.size();
     }
 
     public int getRedoCount() {
         // TODO: implement based on the requirements above
-        return 0;
+        return redoStack.size();
     }
 }
