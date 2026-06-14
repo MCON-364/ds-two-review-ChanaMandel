@@ -56,6 +56,8 @@ public class ConcurrentEventLog {
      */
     public void logEvent(long timestamp, String message) {
         // TODO
+        long compositeKey = (timestamp * 1_000_000L) + sequence.getAndIncrement();
+        log.put(compositeKey, message);
     }
 
     /**
@@ -71,6 +73,23 @@ public class ConcurrentEventLog {
     public void runConcurrentSources(List<String> sources, int eventsEach)
             throws InterruptedException {
         // TODO
+        // Create a thread pool with one thread per source
+        ExecutorService executor = Executors.newFixedThreadPool(sources.size());
+
+        // Submit a task for each source name using a stream loop
+        sources.forEach(sourceName -> executor.submit(() -> {
+            for (int i = 0; i < eventsEach; i++) {
+                long currentTimestamp = System.currentTimeMillis();
+                logEvent(currentTimestamp, sourceName + "-" + i);
+            }
+        }));
+
+        // Tell the executor to stop accepting new work and begin shutting down
+        executor.shutdown();
+
+        // Block the main thread and wait for all submitted tasks to finish processing
+        // (We'll use 1 day as a safe, generous maximum wait time)
+        executor.awaitTermination(1, TimeUnit.DAYS);
     }
 
     /**
@@ -79,7 +98,14 @@ public class ConcurrentEventLog {
      */
     public List<String> getEventsAfter(long timestamp) {
         // TODO
-        return List.of();
+        // Determine the exclusive lower-bound key boundary
+        long boundaryKey = (timestamp * 1_000_000L) + 999_999L;
+
+        // tailMap(boundaryKey, false) gets everything strictly greater than that boundary
+        return log.tailMap(boundaryKey, false)
+                .values()
+                .stream()
+                .toList();
     }
 
     /**
@@ -87,7 +113,16 @@ public class ConcurrentEventLog {
      */
     public List<String> getEventsBetween(long from, long to) {
         // TODO
-        return List.of();
+        // Start of the 'from' millisecond
+        long startKey = from * 1_000_000L;
+        // End of the 'to' millisecond (including all possible sequence tie-breakers)
+        long endKey = (to * 1_000_000L) + 999_999L;
+
+        // subMap(fromKey, fromInclusive, toKey, toInclusive)
+        return log.subMap(startKey, true, endKey, true)
+                .values()
+                .stream()
+                .toList();
     }
 
     /**
@@ -95,7 +130,15 @@ public class ConcurrentEventLog {
      */
     public List<String> getMostRecentN(int n) {
         // TODO
-        return List.of();
+        if (n <= 0) {
+            return List.of();
+        }
+
+        return log.descendingMap() // View of the map in reverse order (high keys first)
+                .values()          // Get the messages
+                .stream()          // Start the stream
+                .limit(n)          // Stop after 'n' elements
+                .toList();         // Collect into an immutable list
     }
 
     /** Returns the total number of logged events. */

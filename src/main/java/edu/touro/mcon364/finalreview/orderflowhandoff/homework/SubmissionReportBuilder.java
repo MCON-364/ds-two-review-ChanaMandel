@@ -56,7 +56,9 @@ public class SubmissionReportBuilder {
      */
     public long getLateCount() {
         // TODO: answer this reporting question from the submissions collection
-        return 0;
+        return submissions.stream()
+                .filter(StudentSubmission::late)
+                .count();
     }
 
     /**
@@ -66,7 +68,10 @@ public class SubmissionReportBuilder {
      */
     public double getAverageScore() {
         // TODO: answer this reporting question from the submissions collection
-        return 0.0;
+        return submissions.stream()
+                .mapToInt(StudentSubmission::score)
+                .average()
+                .orElse(0.0);
     }
 
     /**
@@ -75,7 +80,14 @@ public class SubmissionReportBuilder {
      */
     public Map<String, Long> getSubmissionsByAssignment() {
         // TODO: answer this reporting question from the submissions collection
-        return Map.of();
+        return submissions.stream()
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.groupingBy(
+                                StudentSubmission::assignmentName,
+                                java.util.stream.Collectors.counting()
+                        ),
+                        Map::copyOf // Safeguards the map from being modified outside this class
+                ));
     }
 
     /**
@@ -83,7 +95,9 @@ public class SubmissionReportBuilder {
      */
     public List<StudentSubmission> getFailingSubmissions() {
         // TODO: answer this reporting question from the submissions collection
-        return List.of();
+        return submissions.stream()
+                .filter(submission -> submission.score() < 60)
+                .toList(); // Returns a truly unmodifiable list in modern Java
     }
 
     /**

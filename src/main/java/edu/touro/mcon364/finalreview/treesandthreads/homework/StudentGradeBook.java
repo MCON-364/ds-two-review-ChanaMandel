@@ -33,7 +33,7 @@ public class StudentGradeBook {
 
     public StudentGradeBook(Map<String, Double> grades) {
         // TODO: validate non-null; store a defensive copy
-        this.grades = Map.of();
+        this.grades = Map.copyOf(Objects.requireNonNull(grades, "Grades map cannot be null"));
     }
 
     /**
@@ -42,7 +42,7 @@ public class StudentGradeBook {
      */
     public TreeMap<String, Double> buildSortedGradeBook() {
         // TODO
-        return new TreeMap<>();
+        return new TreeMap<>(grades);
     }
 
     /**
@@ -51,7 +51,9 @@ public class StudentGradeBook {
      */
     public DoubleSummaryStatistics getStatistics() {
         // TODO
-        return new DoubleSummaryStatistics();
+        return grades.values().stream()
+                .mapToDouble(Double::doubleValue)
+                .summaryStatistics();
     }
 
     /**
@@ -60,7 +62,21 @@ public class StudentGradeBook {
      */
     public TreeMap<String, Long> getLetterGradeDistribution() {
         // TODO
-        return new TreeMap<>();
+        return grades.values().stream()
+                .collect(Collectors.groupingBy(
+                        this::convertToLetter, // Use a helper method or lambda to determine the key
+                        TreeMap::new,          // Ensure the result is sorted alphabetically
+                        Collectors.counting()  // Count the number of students per grade
+                ));
+    }
+
+    // Internal helper for clarity
+    private String convertToLetter(double score) {
+        if (score >= 90) return "A";
+        if (score >= 80) return "B";
+        if (score >= 70) return "C";
+        if (score >= 60) return "D";
+        return "F";
     }
 
     /**
@@ -68,7 +84,19 @@ public class StudentGradeBook {
      */
     public List<String> getTopStudents(int n) {
         // TODO
-        return List.of();
+        if (n <= 0) {
+            return List.of();
+        }
+
+        return grades.entrySet().stream()
+                // 1. Sort the entries by value, reversed (highest score first)
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                // 2. Extract just the student's name from the entry
+                .map(Map.Entry::getKey)
+                // 3. Limit to the top n students
+                .limit(n)
+                // 4. Collect into an immutable list
+                .toList();
     }
 
     /**
@@ -77,6 +105,14 @@ public class StudentGradeBook {
      */
     public List<String> getStudentsInScoreRange(double low, double high) {
         // TODO
-        return List.of();
+        return grades.entrySet().stream()
+                // 1. Keep only entries where the score is within [low, high]
+                .filter(entry -> entry.getValue() >= low && entry.getValue() <= high)
+                // 2. Extract just the student's name
+                .map(Map.Entry::getKey)
+                // 3. Sort the names alphabetically
+                .sorted()
+                // 4. Collect into an immutable list
+                .toList();
     }
 }

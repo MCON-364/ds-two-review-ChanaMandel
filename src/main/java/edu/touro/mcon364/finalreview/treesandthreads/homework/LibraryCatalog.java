@@ -36,7 +36,7 @@ public class LibraryCatalog {
 
     public LibraryCatalog(List<Book> books) {
         // TODO: validate non-null, store a defensive copy
-        this.books = List.of();
+        this.books = List.copyOf(Objects.requireNonNull(books, "Books list cannot be null"));
     }
 
     /**
@@ -46,7 +46,13 @@ public class LibraryCatalog {
      */
     public TreeMap<String, Book> buildTitleIndex() {
         // TODO
-        return new TreeMap<>();
+        return books.stream()
+                .collect(Collectors.toMap(
+                        Book::title,                // Key mapper: use the book title
+                        book -> book,               // Value mapper: use the book object itself
+                        (existing, replacement) -> existing, // Merge function: if duplicate title, keep the first one found
+                        TreeMap::new                // Map factory: explicitly request a TreeMap
+                ));
     }
 
     /**
@@ -55,7 +61,12 @@ public class LibraryCatalog {
      */
     public TreeMap<String, TreeSet<Book>> buildAuthorIndex() {
         // TODO
-        return new TreeMap<>();
+        return books.stream()
+                .collect(Collectors.groupingBy(
+                        Book::author,           // Key: Author Name
+                        TreeMap::new,           // Map Type: TreeMap (keeps authors sorted A-Z)
+                        Collectors.toCollection(TreeSet::new) // Value: TreeSet (keeps books sorted by Title)
+                ));
     }
 
     /**
@@ -64,7 +75,10 @@ public class LibraryCatalog {
      */
     public List<Book> getBooksPublishedBefore(int year) {
         // TODO
-        return List.of();
+        return books.stream()
+                .filter(book -> book.year() < year)
+                .sorted(Comparator.comparing(Book::title))
+                .toList();
     }
 
     /**
@@ -73,7 +87,19 @@ public class LibraryCatalog {
      */
     public List<String> getAuthorsWithMoreThan(int n) {
         // TODO
-        return List.of();
+        // 1. Count books per author: Map<String, Long>
+        Map<String, Long> authorCounts = books.stream()
+                .collect(Collectors.groupingBy(
+                        Book::author,
+                        Collectors.counting()
+                ));
+
+        // 2. Filter map entries, sort by author name, and grab the keys
+        return authorCounts.entrySet().stream()
+                .filter(entry -> entry.getValue() > n)
+                .map(Map.Entry::getKey)
+                .sorted() // Strings sort alphabetically by default
+                .toList();
     }
 
     /**
@@ -82,7 +108,26 @@ public class LibraryCatalog {
      */
     public List<Book> findByTitlePrefix(String prefix) {
         // TODO
-        return List.of();
+        if (prefix == null || prefix.isEmpty()) {
+            return List.of();
+        }
+
+        // 1. Get our O(log n) sorted title index map
+        TreeMap<String, Book> titleIndex = buildTitleIndex();
+
+        // 2. Define the starting boundary (e.g., "Java")
+        String startKey = prefix;
+
+        // 3. Define the exclusive ending boundary (e.g., "Javb")
+        // We change the last character of the prefix to the next character in the Unicode alphabet
+        String endKey = prefix.substring(0, prefix.length() - 1)
+                + (char) (prefix.charAt(prefix.length() - 1) + 1);
+
+        // 4. Slice the map view between [startKey, endKey) and pull the values
+        return titleIndex.subMap(startKey, true, endKey, false)
+                .values()
+                .stream()
+                .toList();
     }
 }
 
