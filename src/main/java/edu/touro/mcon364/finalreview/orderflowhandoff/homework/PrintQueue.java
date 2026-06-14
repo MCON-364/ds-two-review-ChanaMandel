@@ -2,7 +2,10 @@ package edu.touro.mcon364.finalreview.orderflowhandoff.homework;
 
 import edu.touro.mcon364.finalreview.model.PrintJob;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Optional;
+import java.util.Queue;
 
 /**
  * Homework 1 — PrintQueue.
@@ -21,8 +24,8 @@ import java.util.Optional;
  *
  * Before coding, think through the shape of the problem:
  * - What information does this object need to remember between method calls?
- * - When a new job is submitted, where should it be placed?
- * - When the printer is ready, which job should be selected?
+ * - When a new job is submitted, where should it be placed? on the end of the queue
+ * - When the printer is ready, which job should be selected? the oldest one FIFO
  * - Is this problem about the most recent item, the oldest item, or all items?
  * - Which collection behavior matches that rule?
  * - What should the methods return when there are no waiting jobs?
@@ -39,6 +42,8 @@ import java.util.Optional;
 public class PrintQueue {
 
     // TODO: choose the field or fields needed to remember waiting print jobs
+    private final Queue<PrintJob> waitingJobs = new ArrayDeque<>();
+
 
     /**
      * Records a new print job as waiting.
@@ -47,6 +52,8 @@ public class PrintQueue {
      */
     public void submit(PrintJob job) {
         // TODO: implement
+        if(job == null) throw new IllegalArgumentException("job cannot be null");
+        waitingJobs.add(job);
     }
 
     /**
@@ -56,7 +63,9 @@ public class PrintQueue {
      */
     public Optional<PrintJob> printNext() {
         // TODO: implement
-        return Optional.empty();
+        if(!waitingJobs.isEmpty()) {
+            return Optional.of(waitingJobs.poll());
+        } else return Optional.empty();
     }
 
     /**
@@ -66,7 +75,7 @@ public class PrintQueue {
      */
     public Optional<PrintJob> peekNext() {
         // TODO: implement
-        return Optional.empty();
+        return Optional.ofNullable(waitingJobs.peek());
     }
 
     /**
@@ -74,6 +83,6 @@ public class PrintQueue {
      */
     public int queuedJobs() {
         // TODO: implement
-        return 0;
+        return waitingJobs.size();
     }
 }
